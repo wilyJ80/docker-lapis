@@ -24,7 +24,7 @@ ARG OPENRESTY_CONFIG_OPTIONS="\
 ENV OPENRESTY_VERSION=1.15.8.3 \
     OPENRESTY_PREFIX=/usr/local/openresty \
     LUAROCKS_VERSION=3.3.1 \
-    LAPIS_VERSION=1.8.1
+    LAPIS_VERSION=1.16.0
 ENV PATH=${OPENRESTY_PREFIX}/bin:${OPENRESTY_PREFIX}/nginx/sbin:${PATH}
 
 RUN set -xe && \
@@ -45,6 +45,7 @@ RUN set -xe && \
             gcc \
             openssl \
             pcre \
+            sqlite-dev \
         && \
         update-ca-certificates && \
         # Install OpenResty
@@ -72,15 +73,18 @@ RUN set -xe && \
         make -j $(getconf _NPROCESSORS_ONLN) build && make install && \
         cd / && rm -rf luarocks-${LUAROCKS_VERSION}
 
-COPY docker-* /usr/local/bin
+COPY docker-luarocks-install /usr/local/bin
 
 # Install Lapis
 RUN set -xe && \
         docker-luarocks-install lapis ${LAPIS_VERSION} && \
         docker-luarocks-install moonscript && \
+        docker-luarocks-install lsqlite3 && \
         # Remove build deps
         apk del .build-deps && \
         # Test
-        lapis -v
+        lapis -h
 
-CMD ["lapis", "-v"]
+WORKDIR /app
+
+CMD ["sh", "-c", "hostname -i && /bin/sh"]
